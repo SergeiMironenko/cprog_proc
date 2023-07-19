@@ -1,3 +1,5 @@
+// Сумма аргументов
+
 #include <stdio.h>
 #include <stdlib.h>
 
