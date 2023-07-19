@@ -36,7 +36,7 @@ int main(int argc, char *argv[])
             perror("fork");
             exit(EXIT_FAILURE);
         case 0:
-            execv(args[0], args);  // Отличие от 1.5: execv вместо execvp
+            execvp(args[0], args);  // Отличие от 1.4: execvp вместо execv
             exit(EXIT_SUCCESS);
         default:
             for (int i = 0; i < n; i++)
