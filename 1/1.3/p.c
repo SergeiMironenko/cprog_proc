@@ -16,16 +16,17 @@ int main(int argc, char *argv[])
         case 0:
             for (int i = argc / 2 + 1; i < argc; i++)
             {
-                printf("%d^2 = %d (child)\n", i, atoi(argv[i]) * atoi(argv[i]));
+                int a = atoi(argv[i]);
+                printf("%d^2 = %d (child)\n", a, a * a);
             }
             exit(EXIT_SUCCESS);
         default:
+            wait(&rv);
             for (int i = 1; i < argc / 2 + 1; i++)
             {
-                printf("%d^2 = %d (parent)\n", i, atoi(argv[i]) * atoi(argv[i]));
+                int a = atoi(argv[i]);
+                printf("%d^2 = %d (parent)\n", a, a * a);
             }
-            wait(&rv);
-            printf("child status: %d\n", rv);
     }
     exit(EXIT_SUCCESS);
 }
