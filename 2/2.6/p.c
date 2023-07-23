@@ -34,13 +34,13 @@ int dir_info(char *current_dir)
         int stat_rv = lstat(path, buf);
         if (stat_rv == 0)
         {
-            if (S_ISREG(buf->st_mode)) type = "regular file";
-            else if (S_ISDIR(buf->st_mode)) type = "directory";
-            else if (S_ISLNK(buf->st_mode)) type = "symbolic link";
-            else if (S_ISSOCK(buf->st_mode)) type = "socket";
-            else if (S_ISCHR(buf->st_mode)) type = "character device";
-            else if (S_ISBLK(buf->st_mode)) type = "block device";
-            else if (S_ISFIFO(buf->st_mode)) type = "FIFO channel";
+            if (S_ISREG(buf->st_mode)) strcpy(type, "regular file");
+            else if (S_ISDIR(buf->st_mode)) strcpy(type, "directory");
+            else if (S_ISLNK(buf->st_mode)) strcpy(type, "symbolic link");
+            else if (S_ISSOCK(buf->st_mode)) strcpy(type, "socket");
+            else if (S_ISCHR(buf->st_mode)) strcpy(type, "character device");
+            else if (S_ISBLK(buf->st_mode)) strcpy(type, "block device");
+            else if (S_ISFIFO(buf->st_mode)) strcpy(type, "FIFO channel");
             
             printf("%-20s %s\n", type, dir_ent->d_name);
         }
@@ -50,8 +50,9 @@ int dir_info(char *current_dir)
         }
     }
     
+    closedir(dir);
+    free(type);
     free(buf);
-    // free(type);
     return 0;
 }
 

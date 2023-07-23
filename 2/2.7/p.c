@@ -10,6 +10,7 @@ int main(int argc, char *argv[])
 {
     if (argc < 2)
     {
+        printf("Введите количество случайных чисел первым аргументом.\n");
         exit(EXIT_FAILURE);
     }
 
@@ -26,7 +27,8 @@ int main(int argc, char *argv[])
         case -1:
             perror("fork");
             exit(EXIT_FAILURE);
-        case 0: ;
+        case 0:
+            close(pipefd[0]);
             srand(time(NULL));
             int a;
             for (int i = 0; i < atoi(argv[1]); i++)
@@ -35,18 +37,17 @@ int main(int argc, char *argv[])
                 write(pipefd[1], &a, sizeof(int));
             }
             exit(EXIT_SUCCESS);
-        default: ;
+        default:
+            close(pipefd[1]);
             int b;
             FILE *fp = fopen("out", "w");
             for (int i = 0; i < atoi(argv[1]); i++)
             {
                 read(pipefd[0], &b, sizeof(int));
                 fprintf(fp, "from pipe: %d\n", b);
-                
                 printf("from pipe = %d\n", b);
             }
             fclose(fp);
-            break;
     }
     exit(EXIT_SUCCESS);
 }
