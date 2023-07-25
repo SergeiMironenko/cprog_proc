@@ -5,7 +5,8 @@
 #include <wait.h>
 #include <string.h>
 
-#define ARG_COUNT 10
+#define ARG_COUNT 10  // Максимальное количество аргументов
+#define PIPE_COUNT 2
 
 // Ввод аргументов
 int get_args(char *s[ARG_COUNT], int *n)
@@ -24,48 +25,29 @@ int get_args(char *s[ARG_COUNT], int *n)
 
 int main(int argc, char *argv[])
 {
-    char *args[ARG_COUNT];  // Вводимые аргументы
-    int n = 0;  // Количество аргументов (не считая NULL в конце)
+    // Реальное количество аргументов на 2 больше
+    // Два дополнительных: имя программы (самый первый), NULL (послений)
+    char *args[ARG_COUNT + 2];
+
+    // Количество аргументов (не считая NULL в конце)
+    // Для вывода аргументов в консоль или освобождения памяти
+    int n = 0;
+
+    pid_t pid;
     int rv = 0;
+
     printf("Введите имя и аргументы программы: ");
     get_args(args, &n);
 
-    int pipefd[2];
-    pipe(pipefd);
-
-    int k = 0;  // Индекс следующей команды
-    for (int i = 0; i < n; i++)
+    int pipefd[PIPE_COUNT][2];
+    for(int i = 0; i < PIPE_COUNT; i++)
     {
-        char is_pipe = strcmp(args[i], "|") == 0;
-        if (is_pipe || args[i + 1] == NULL)
-        {
-            if (is_pipe) args[i] = NULL;
-
-            pid_t pid = fork();
-            switch(pid)
-            {
-                case -1:
-                    perror("fork");
-                    exit(EXIT_FAILURE);
-                case 0:
-                    if (k == 0)
-                    {
-                        close(pipefd[0]);
-                        dup2(pipefd[1], STDOUT_FILENO);
-                    }
-                    else
-                    {
-                        close(pipefd[1]);
-                        dup2(pipefd[0], STDIN_FILENO);
-                    }
-                    execvp(args[k], &args[k]);
-            }
-            k = i + 1;
-        }
+        pipe(pipefd[i]);
     }
 
     for (int i = 0; i < n; i++)
     {
         free(args[i]);
     }
+    exit(EXIT_SUCCESS);
 }
