@@ -3,18 +3,10 @@
 #include <unistd.h>
 #include <signal.h>
 
-static int sigint_count = 0;
-
-void listener()
-{
-    sigint_count++;
-    if (sigint_count == 3) exit(EXIT_SUCCESS);
-}
-
 int main()
 {
     int i = 0;
-    signal(SIGINT, listener);
+    signal(SIGINT, SIG_IGN);
 
     while (1)
     {
