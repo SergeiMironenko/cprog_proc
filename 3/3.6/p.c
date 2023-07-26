@@ -6,6 +6,47 @@
 #include <fcntl.h>
 #include <sys/stat.h>
 #include <signal.h>
+#include <wait.h>
+
+int child_forked = 0;
+int stop_read = 0;
+pid_t pid1, pid2;
+
+void check_child(int signo)
+{
+    printf("check_child\n");
+    if (!child_forked && signo == SIGUSR1)
+    {
+        child_forked = 1;
+    }
+
+}
+
+void handler(int signo)
+{
+    printf("handler (pid1 = %d, pid2 = %d, pid = %d)\n", pid1, pid2, getpid());
+    if (!child_forked && signo == SIGUSR1)
+    {
+        printf("check_child\n");
+        child_forked = 1;
+    }
+    else
+    {
+        switch(signo)
+        {
+            case SIGUSR1:
+                printf("sigusr1");
+                stop_read = 1;
+                break;
+            case SIGUSR2:
+                printf("sigusr2");
+                stop_read = 0;
+                break;
+            default:
+                printf("other signal");
+        }
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -15,54 +56,33 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    int pipefd[2];
-    if(pipe(pipefd))
-    {
-        perror("pipe");
-        exit(EXIT_FAILURE);
-    }
+    signal(SIGUSR1, handler);
+    signal(SIGUSR2, handler);
 
-    // FILE *fp;
-    pid_t pid = fork();
-    switch(pid)
+    pid1 = getpid();
+    pid2 = fork();
+
+    switch(pid2)
     {
         case -1:
             perror("fork");
             exit(EXIT_FAILURE);
         case 0:
-            close(pipefd[0]);
-            srand(time(NULL));
-            int a;
-            char *buf = (char*)malloc(sizeof(char));
-            FILE *fp2;
-            for (int i = 0; i < atoi(argv[1]); i++)
-            {
-                fp2 = fopen("out.txt", "r");
-                fread(buf, sizeof(char), 1000, fp2);
-                printf("buf from child = %s\n", buf);
-                fclose(fp2);
+            // signal(SIGUSR1, handler);
+            // signal(SIGUSR2, handler);
+            kill(pid1, SIGUSR1);  // Сигнал по запуску дочернего процесса
+            child_forked = 1;
 
-                a = rand() % 1000;
-                write(pipefd[1], &a, sizeof(int));
-            }
-            free(buf);
+            while (stop_read) ;
+
             exit(EXIT_SUCCESS);
         default:
-            close(pipefd[1]);
-            int b;
+            // signal(SIGUSR1, check_child);
+            while(!child_forked) ;  // Одижание запуска дочернего процесса
 
-            kill(pid, SIGUSR1);
+            kill(pid2, SIGUSR1);
 
-            FILE *fp = fopen("out.txt", "w");
-            for (int i = 0; i < atoi(argv[1]); i++)
-            {
-                read(pipefd[0], &b, sizeof(int));
-                fprintf(fp, "from pipe: %d\n", b);
-                printf("from pipe = %d\n", b);
-            }
-            fclose(fp);
-
-            kill(pid, SIGUSR2);
+            kill(pid2, SIGUSR2);
     }
     exit(EXIT_SUCCESS);
 }
