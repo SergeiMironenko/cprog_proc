@@ -109,7 +109,7 @@ int main(int argc, char *argv[])
                 // Чтение из канала
                 // printf("pipe waiting...\n");
                 read(pipefd[0], &b, sizeof(int));
-                printf("Number from parent = %d\n", b);
+                printf("number from PARENT = %d\n", b);
 
                 // Блокировка дочернего процесса
                 // printf("blocking...\n");
@@ -119,7 +119,7 @@ int main(int argc, char *argv[])
                 // Запись в файл
                 // printf("file writing...\n");
                 fp = fopen(filename, "a");
-                fprintf(fp, "Number in file: %d\n", b);
+                fprintf(fp, "from FILE: %d\n", b);
                 fclose(fp);
 
                 // Разблокировка дочернего процесса
