@@ -33,7 +33,7 @@ int main()
     struct sembuf lock = {0, -1, 0};
     struct sembuf unlock[2] = {{0, 0, 0}, {0, 1, 0}};
 
-    fd = open(fifofile, O_RDONLY);
+    fd = open(fifofile, O_RDONLY | O_NONBLOCK);
 
     while (1)
     {

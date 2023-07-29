@@ -2,7 +2,7 @@ GEN=gen
 OUT=out
 FIFO=fifofile
 
-make: clean gen out ex test
+make: clean gen out
 
 gen:
 	gcc -o $(GEN) $(GEN).c

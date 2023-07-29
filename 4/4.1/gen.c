@@ -54,7 +54,7 @@ int main()
         snprintf(buf, 80, "%d", r);
         printf("Generated: %d\n", r);
 
-        fd = open(fifofile, O_WRONLY | O_NONBLOCK);
+        fd = open(fifofile, O_WRONLY);
         write(fd, buf, 80);
         close(fd);
 
