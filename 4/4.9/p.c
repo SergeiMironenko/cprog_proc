@@ -86,5 +86,8 @@ int main()
 
     munmap(v, 7 * sizeof(int));
     shm_unlink("shm");
+
+    sem_unlink("sem");
+    sem_close(sem);
     exit(EXIT_SUCCESS);
 }
