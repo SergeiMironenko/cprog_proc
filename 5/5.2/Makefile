@@ -1,13 +1,14 @@
 Server=server
 Client=client
+FUN=fun
 
 make: clean server client
 
-server:
-	gcc -o $(Server) $(Server).c fun.c
+server: $(Server).c $(FUN).*
+	gcc -o $(Server) $(Server).c $(FUN).c
 
-client:
-	gcc -o $(Client) $(Client).c fun.c
+client: $(Client).c $(FUN).*
+	gcc -o $(Client) $(Client).c $(FUN).c
 
 clean:
 	rm -rf $(Server) $(Client)

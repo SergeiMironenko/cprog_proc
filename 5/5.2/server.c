@@ -1,15 +1,8 @@
 // UDP SERVER
 
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h>
-#include <string.h>
 #include <stdio.h>
-#include <errno.h>
-#include <unistd.h>
 #include <stdlib.h>
-#include <netdb.h>
+#include <string.h>
 #include "fun.h"
 
 int main(int argc, char *argv[])
@@ -30,12 +23,50 @@ int main(int argc, char *argv[])
     char line[1000];
     struct sockaddr_in cliaddr = {0};
 
+    struct sockaddr_in c_addr[2];
+    int c_port[2];
+    int clients = 0;
+
     while(1)
     {
         clilen = sizeof cliaddr;
         Recvfrom(server, line, 999, 0, (struct sockaddr *) &cliaddr, &clilen);
-        printf("%s from %d\n", line, ntohs(cliaddr.sin_port));
-        Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &cliaddr, clilen);
+        if (clients == 0)
+        {
+            c_addr[0] = cliaddr;
+            c_port[0] = ntohs(c_addr[0].sin_port);
+            clients++;
+            printf("client 0 (port %d) was connected\n", c_port[0]);
+            Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &cliaddr, clilen);
+        }
+        else if (clients == 1)
+        {
+            if (c_port[0] == ntohs(cliaddr.sin_port))
+            {
+                printf("one client\n");
+                Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &cliaddr, clilen);
+            }
+            else
+            {
+                c_addr[1] = cliaddr;
+                c_port[1] = ntohs(c_addr[1].sin_port);
+                clients++;
+                printf("client 1 (port %d) was connected\n", c_port[1]);
+                Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &c_addr[0], sizeof c_addr[0]);
+            }
+        }
+        else
+        {
+            if (c_port[0] == ntohs(cliaddr.sin_port))
+            {
+                Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &c_addr[1], sizeof c_addr[1]);
+            }
+            else if (c_port[1] == ntohs(cliaddr.sin_port))
+            {
+                Sendto(server, line, strlen(line) + 1, 0, (struct sockaddr *) &c_addr[0], sizeof c_addr[0]);
+            }
+        }
+        printf("(client port %d): %s\n", ntohs(cliaddr.sin_port), line);
     }
     return 0;
 }
