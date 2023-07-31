@@ -1,17 +1,19 @@
 SND=snd
 RCV=rcv
 DEL=del
+FILES=erproc.c
+FLAGS=-lrt
 
 make: clean snd rcv del
 
-snd:
-	gcc -o $(SND) $(SND).c
+snd: $(SND).c
+	gcc -o $(SND) $(SND).c $(FILES) $(FLAGS)
 
-rcv:
-	gcc -o $(RCV) $(RCV).c
+rcv: $(RCV).c
+	gcc -o $(RCV) $(RCV).c $(FILES) $(FLAGS)
 
-del:
-	gcc -o $(DEL) $(DEL).c
+del: $(DEL).c
+	gcc -o $(DEL) $(DEL).c $(FILES) $(FLAGS)
 
 clean:
 	rm -rf $(SND) $(RCV) $(DEL)

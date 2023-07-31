@@ -2,37 +2,28 @@
 #include <stdlib.h>
 #include <sys/ipc.h>
 #include <sys/msg.h>
+#include <mqueue.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+#include "erproc.h"
 
-#include "msgbuf.h"
+#define BUF_LEN 80
 
 int main(int argc, char *argv[])
 {
-    key_t key = ftok("README.md", 13);
-    int msqid = msgget(key, 0600 | IPC_CREAT);
-    
-    if (msqid == -1)
-    {
-        perror("msgget");
-        exit(EXIT_FAILURE);
-    }
+    struct mq_attr attr;
+    attr.mq_flags = 0;
+    attr.mq_maxmsg = 5;
+    attr.mq_msgsize = BUF_LEN;
+    attr.mq_curmsgs = 0;
+    mqd_t mqd = Mq_open("/mqueue", O_CREAT | O_WRONLY | O_NONBLOCK, 0600, &attr);
+    int msg_num = 3;
+    char buf[BUF_LEN];
 
-    int msg_num = 5;
     for (int i = 0; i < msg_num; i++)
     {
-        msgbuf msg;
-
-        // Пред пред последнее сообщение будет иметь тип 255
-        if (i == msg_num - 2) msg.mtype = 255;
-        else msg.mtype = 1;
-
-        snprintf(msg.mtext, 80, "sent number: %d", i);
-        int snd_status = msgsnd(msqid, (void *)&msg, sizeof(msg.mtext), 0);
-
-        if (snd_status == -1)
-        {
-            perror("msgsnd");
-            exit(EXIT_FAILURE);
-        }
+        snprintf(buf, BUF_LEN, "sent number: %d", i);
+        Mq_send(mqd, buf, BUF_LEN, 1);
     }
 
     printf("В очередь добавлено %d сообщений.\n", msg_num);
