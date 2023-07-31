@@ -16,6 +16,8 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
+    printf("server is running...\n");
+
     int sockfd; /* Дескриптор сокета */
     int clilen, n; /* Переменные для различных длин и количества символов */
     char line[1000]; /* Массив для принятой и отсылаемой строки */

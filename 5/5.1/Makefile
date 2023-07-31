@@ -3,10 +3,10 @@ Client=client
 
 make: clean server client
 
-server:
+server: $(Server).c
 	gcc -o $(Server) $(Server).c
 
-client:
+client: $(Client).c
 	gcc -o $(Client) $(Client).c
 
 clean:

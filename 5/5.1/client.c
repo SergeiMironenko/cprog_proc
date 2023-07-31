@@ -19,7 +19,7 @@ int main(int argc, char **argv)
     командной строке. При его отсутствии ругаемся и прекращаем работу */
     if(argc < 3)
     {
-        printf("Usage: a.out <IP address> <port>\n");
+        printf("./client <IP address> <server port>\n");
         exit(1);
     }
 
@@ -78,7 +78,7 @@ int main(int argc, char **argv)
     }
 
     /* Печатаем пришедший ответ и закрываем сокет */
-    printf("%s\n", recvline);
+    printf("from server: %s\n", recvline);
     close(sockfd);
     return 0;
 }
