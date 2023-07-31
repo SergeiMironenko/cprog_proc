@@ -3,7 +3,27 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#include <pthread.h>
 #include "fun.h"
+
+#define BUF_LEN 256
+
+struct thread_args
+{
+    int sockfd;
+};
+
+void reader(void *args)
+{
+    struct thread_args *targs = args;
+    char buf[BUF_LEN];
+    while (1)
+    {
+        Recvfrom(targs->sockfd, buf, BUF_LEN, 0, (struct sockaddr *) NULL, NULL);
+        printf("\nReceived from server: %s>", buf);
+        fflush(stdout);
+    }
+}
 
 int main(int argc, char *argv[])
 {
@@ -25,18 +45,18 @@ int main(int argc, char *argv[])
     servaddr.sin_port = htons(atol(argv[2]));
     Inet_aton(argv[1], &servaddr.sin_addr);
 
-    int n, len;
-    char sendline[1000], recvline[1000];
+    char buf[BUF_LEN];
+
+    pthread_t thread_id;
+    struct thread_args args;
+    args.sockfd = sockfd;
+    pthread_create(&thread_id, NULL, (void *) reader, (void *) &args);
 
     while (1)
     {
-        printf("String => ");
-        fgets(sendline, 1000, stdin);
-
-        Sendto(sockfd, sendline, strlen(sendline) + 1, 0, (struct sockaddr *) &servaddr, sizeof servaddr);
-        Recvfrom(sockfd, recvline, 999, 0, (struct sockaddr *) NULL, NULL);
-
-        printf("%s\n", recvline);
+        printf(">");
+        fgets(buf, BUF_LEN, stdin);
+        Sendto(sockfd, buf, strlen(buf) + 1, 0, (struct sockaddr *) &servaddr, sizeof servaddr);
     }
 
     close(sockfd);
