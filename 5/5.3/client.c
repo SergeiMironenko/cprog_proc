@@ -9,71 +9,96 @@
 #include <netinet/in.h>
 #include <netdb.h>
 #include <arpa/inet.h>
+#include <pthread.h>
+#include "erproc.h"
+
+#define BUF_LEN 1024
 
 void error(const char *msg) {
     perror(msg);
     exit(0);
 }
 
+struct thread_args
+{
+    int sock;
+};
+
+void reader(void *arg)
+{
+    struct thread_args *args = arg;
+    int n;
+    char buff[BUF_LEN];
+    while ((n = recv(args->sock, &buff[0], sizeof(buff) - 1, 0)) > 0) {
+        buff[n] = 0;
+        printf("From hent: %s>", buff);
+        fflush(stdout);
+    }
+}
+
 int main(int argc, char *argv[]) {
-    int my_sock, portno, n;
-    struct sockaddr_in serv_addr;
-    struct hostent *server;
+    int my_sock, serv_port, cli_port, n;
+    struct sockaddr_in serv_addr, cli_addr;
+    struct hostent *hent;
     char buff[1024];
-    printf("TCP DEMO CLIENT\n");
-    if (argc < 3) {
-        fprintf(stderr, "usage %s hostname port\n",
-        argv[0]);
-        exit(0);
+    printf("Запущен TCP-клиент\n");
+
+    if (argc < 4) {
+        fprintf(stderr, "usage %s <hostname> <server port> <client port>\n", argv[0]);
+        exit(EXIT_FAILURE);
     }
 
-    // извлечение порта
-    portno = atoi(argv[2]);
+    hent = gethostbyname(argv[1]);
+    if (hent == (struct hostent *) 0)
+    {
+        fprintf(stderr, "Gethostbyname failed\n");
+        exit(EXIT_FAILURE);
+    }
+    printf("hostname = %s\n", hent->h_name);
 
-    // Шаг 1 - создание сокета
-    my_sock = socket(AF_INET, SOCK_STREAM, 0);
-    if (my_sock < 0) error("ERROR opening socket");
-
-    // извлечение хоста
-    // server = gethostbyname(argv[1]);
-    // if (server == NULL) {
-    //     fprintf(stderr, "ERROR, no such host\n");
-    //     exit(0);
-    // }
+    // извлечение портов
+    serv_port = atoi(argv[2]);
+    cli_port = atoi(argv[3]);
 
     // заполнение структуры serv_addr
     bzero((char*) &serv_addr, sizeof(serv_addr));
     serv_addr.sin_family = AF_INET;
-    // bcopy((char*)server->h_addr, (char *)&serv_addr.sin_addr.s_addr,
-    // server->h_length);
+    serv_addr.sin_port = htons(serv_port);
+    Inet_aton(hent->h_name, &serv_addr.sin_addr);
 
-    // установка порта
-    serv_addr.sin_port = htons(portno);
+    // Шаг 1 - создание сокета
+    my_sock = Socket(AF_INET, SOCK_STREAM, 0);
+
+    // заполнение структуры cli_addr
+    bzero((char*) &cli_addr, sizeof(cli_addr));
+    cli_addr.sin_family = AF_INET;
+    cli_addr.sin_port = htons(cli_port);
+
+    Bind(my_sock, (struct sockaddr *) &cli_addr, sizeof cli_addr);
 
     // Шаг 2 - установка соединения
-    if (connect(my_sock, (struct sockaddr *) &serv_addr,sizeof(serv_addr)) < 0)
-    error("ERROR connecting");
+    Connect(my_sock, (struct sockaddr *) &serv_addr,sizeof(serv_addr));
+
+    // Прием сообщений в отдельном потоке
+    pthread_t thread;
+    struct thread_args args;
+    args.sock = my_sock;
+    pthread_create(&thread, NULL, (void *) reader, (void *) &args);
 
     // Шаг 3 - чтение и передача сообщений
-    while ((n = recv(my_sock, &buff[0], sizeof(buff) - 1, 0)) > 0) {
-        // ставим завершающий ноль в конце строки
-        buff[n] = 0;
-        // выводим на экран
-        printf("S=>C:%s", buff);
-        // читаем пользовательский ввод с клавиатуры
-        printf("S<=C:");
-        fgets(&buff[0], sizeof(buff) - 1, stdin);
-        // проверка на "quit"
-        if (!strcmp(&buff[0], "quit\n")) {
+    while (1) {
+        printf(">");
+        fgets(buff, BUF_LEN, stdin);
+
+        if (!strcmp(buff, "quit\n")) {
             // Корректный выход
-            printf("Exit...");
+            printf("Выход...");
             close(my_sock);
             return 0;
         }
-        // передаем строку клиента серверу
-        send(my_sock, &buff[0], strlen(&buff[0]), 0);
+        
+        Send(my_sock, buff, strlen(buff), 0);
     }
-    printf("Recv error \n");
     close(my_sock);
-    return -1;
+    exit(EXIT_SUCCESS);
 }
