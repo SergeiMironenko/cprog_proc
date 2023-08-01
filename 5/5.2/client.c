@@ -20,7 +20,7 @@ void reader(void *args)
     while (1)
     {
         Recvfrom(targs->sockfd, buf, BUF_LEN, 0, (struct sockaddr *) NULL, NULL);
-        printf("\nReceived from server: %s>", buf);
+        printf("\n%s>", buf);
         fflush(stdout);
     }
 }
@@ -34,10 +34,10 @@ int main(int argc, char *argv[])
     }
 
     int sockfd = Socket(AF_INET, SOCK_DGRAM, 0);
+
     struct sockaddr_in cliaddr = {0};
     cliaddr.sin_family = AF_INET;
     cliaddr.sin_port = htons(atol(argv[3]));
-
     Bind(sockfd, (struct sockaddr *) &cliaddr, sizeof cliaddr);
 
     struct sockaddr_in servaddr = {0};
@@ -45,12 +45,12 @@ int main(int argc, char *argv[])
     servaddr.sin_port = htons(atol(argv[2]));
     Inet_aton(argv[1], &servaddr.sin_addr);
 
-    char buf[BUF_LEN];
-
     pthread_t thread_id;
     struct thread_args args;
     args.sockfd = sockfd;
     pthread_create(&thread_id, NULL, (void *) reader, (void *) &args);
+
+    char buf[BUF_LEN];
 
     while (1)
     {
