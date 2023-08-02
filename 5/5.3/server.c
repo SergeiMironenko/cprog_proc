@@ -101,7 +101,7 @@ int main(int argc, char *argv[])
             printusers();
         }
         int n = Recvfrom(newsockfd, buff, 1000, 0, (struct sockaddr *) &cli_addr, &clilen);
-        printf("buff = %s\n", buff);
+        if (n > 0) printf("buff = %s\n", buff);
 
         buff[n] = 0;
         switch(buff[0])
