@@ -5,9 +5,12 @@
 #include <errno.h>
 #include <string.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <mqueue.h>
+#include "erproc.h"
 
-#include "msgbuf.h"
-#define MAX_USERS 10  // Максимальное количество пользователей
+#define MAX_USERS 2  // Максимальное количество пользователей
+#define BUF_LEN 80
 
 int main(int argc, char *argv[])
 {
@@ -25,8 +28,9 @@ int main(int argc, char *argv[])
         exit(EXIT_FAILURE);
     }
 
-    msgbuf msg;
     pid_t pid;
+    char buf[BUF_LEN];
+    int prio;
 
     // Сервер
     if (atoi(argv[1]) == 0)
@@ -34,38 +38,38 @@ int main(int argc, char *argv[])
         printf("Запущен сервер.\n");
 
         // Создание очереди на получение сообщений
-        key_t key = ftok("README.md", 13);
-        int msqid = msgget(key, 0600 | IPC_CREAT);
+        struct mq_attr attr;
+        attr.mq_flags = 0;
+        attr.mq_maxmsg = 5;
+        attr.mq_msgsize = BUF_LEN;
+        attr.mq_curmsgs = 0;
+        mqd_t mqdes = Mq_open("/q", O_CREAT | O_RDWR, 0600, &attr);
 
         // Проверка сообщений
         while (1)
         {
-            int rcv_status = msgrcv(msqid, (void *) &msg, sizeof(msg.mtext), 0, IPC_NOWAIT);
+            Mq_receive(mqdes, buf, BUF_LEN, &prio);
+            // printf("received: %s\n", buf);
 
-            if (rcv_status != -1)
-            {
+            // if (rcv_status != -1)
+            // {
                 // Если сообщение не обработано
-                if (msg.mtype <= MAX_USERS)
+                if (buf[0] == 1)
                 {
-                    printf("Получено сообщение: mtype = %ld, mtext = %s", msg.mtype, msg.mtext);
-
-                    // Добавление id к сообщению
-                    char new_message[MTEXT_LEN];
-                    snprintf(new_message, MTEXT_LEN, "(id = %ld): ", msg.mtype);
-                    strcat(new_message, msg.mtext);
-                    strcpy(msg.mtext, new_message);
+                    printf("Получено сообщение: client_ud = %d, mtext = %s", buf[1], &buf[2]);
+                    
 
                     // Отправка сообщений
                     for (int i = 0; i < MAX_USERS; i++)
                     {
-                        msg.mtype = i + 1 + MAX_USERS;  // 1 <= type <= 10 - необработаны, 11 <= type <= 20 - необработаны
-                        int snd_status = msgsnd(msqid, (void *)&msg, sizeof(msg.mtext), 0);
-
-                        if (snd_status == -1)
-                        {
-                            perror("msgsnd");
-                            exit(EXIT_FAILURE);
-                        }
+                        // Добавление id к сообщению
+                        char buf_copy[BUF_LEN];
+                        strcpy(buf_copy, buf);
+                        char tmpbuf[BUF_LEN];
+                        snprintf(tmpbuf, BUF_LEN, "(id = %d): ", i + 1);
+                        strcat(buf_copy, tmpbuf);
+                        buf_copy[0] = 2;  // Сообщение обработано
+                        Mq_send(mqdes, buf_copy, BUF_LEN, 1);
                     }
 
                     printf("Сообщения добавлены в очередь.\n");
@@ -73,15 +77,9 @@ int main(int argc, char *argv[])
                 else
                 {
                     // Отправка сообщения без изменений
-                    int snd_status = msgsnd(msqid, (void *)&msg, sizeof(msg.mtext), 0);
-
-                    if (snd_status == -1)
-                    {
-                        perror("msgsnd");
-                        exit(EXIT_FAILURE);
-                    }
+                    Mq_send(mqdes, buf, BUF_LEN, 1);
                 }
-            }
+            // }
         }
     }
 
@@ -90,22 +88,21 @@ int main(int argc, char *argv[])
     else
     {
         printf("Запущен клиент\n");
+        char client_id = atoi(argv[1]) % 256;
 
         // Подключение к  очереди 
-        key_t key = ftok("README.md", 13);
-        int msqid = msgget(key, 0600);
-
-        if (msqid == -1)
-        {
-            perror("msgget (rcv)");
-            exit(EXIT_FAILURE);
-        }
+        struct mq_attr attr;
+        attr.mq_flags = 0;
+        attr.mq_maxmsg = 5;
+        attr.mq_msgsize = BUF_LEN;
+        attr.mq_curmsgs = 0;
+        mqd_t mqdes = Mq_open("/q", O_CREAT | O_RDWR, 0600, &attr);
 
         char opt = 0, c = '\n';
 
         while (opt != 'q')
         {
-            printf("1 - Проверить сообщения\n2 - Отправить сообщение\nq - Выйти\n");
+            printf("1 - Считать одно сообщение\n2 - Отправить сообщение\nq - Выйти\n");
             scanf("%c%c", &opt, &c);
             while (c != '\n') c = getchar();
 
@@ -113,41 +110,24 @@ int main(int argc, char *argv[])
             {
                 case '1': ;
                     // Проверка сообщений
-                    int rcv_num = 0;  // Количество считанных сообщений
-                    while (1)
+                    ssize_t n = Mq_receive(mqdes, buf, BUF_LEN, &prio);
+                    if (n <= 0 || buf[1] != client_id)
                     {
-                        int rcv_type = atoi(argv[1]) + MAX_USERS;
-                        int rcv_status = msgrcv(msqid, (void *) &msg, sizeof(msg.mtext), rcv_type, IPC_NOWAIT);
-                        
-                        if (rcv_status == -1)
-                        {
-                            if (rcv_num == 0) printf("Сообщений не найдено.\n");
-                            break;
-                        }
-                        else
-                        {
-                            rcv_num++;
-                            printf("%s\n", msg.mtext);
-                        }
+                        printf("Сообщений не найдено.\n");
+                    }
+                    else
+                    {
+                        printf("%s (%d %d)\n", buf, buf[1], client_id);
                     }
                     break;
                 case '2': ;
                     // Отправка сообщений
-                    char buf[MTEXT_LEN];
                     printf("Введите сообщение: ");
-                    fgets(buf, MTEXT_LEN, stdin);
-
-                    msg.mtype = atoi(argv[1]);
-                    snprintf(msg.mtext, MTEXT_LEN, "%s", buf);
-                    int snd_status = msgsnd(msqid, (void *)&msg, sizeof(msg.mtext), 0);
-
-                    if (snd_status == -1)
-                    {
-                        perror("msgsnd");
-                        exit(EXIT_FAILURE);
-                    }
-
-                    printf("Сообщение добавлено в очередь.\n");
+                    fgets(&buf[2], BUF_LEN, stdin);
+                    buf[0] = 1;  // Сообщение не обработано
+                    buf[1] = client_id;
+                    Mq_send(mqdes, buf, BUF_LEN, 1);
+                    printf("Сообщение добавлено в очередь (%d).\n", client_id);
                     break;
                 case 'q':
                     exit(EXIT_SUCCESS);
