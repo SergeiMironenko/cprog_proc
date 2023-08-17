@@ -74,7 +74,7 @@ void print_data(unsigned char *buf , int size)
                 if (buf[j] >= 32 && buf[j] <= 128)
                     fprintf(fp, "%c", buf[j]);  // Вывод символа алфавита
                 else
-                    fprintf(fp, ".(%d)", buf[j]);  // Либо точки
+                    fprintf(fp, ".");  // Либо точки
             }
 
             fprintf(fp, "\n");
@@ -96,7 +96,7 @@ void print_data(unsigned char *buf , int size)
 
             for (int j = i - i % 16; j <= i; j++) {
                 if (buf[j] >= 32 && buf[j] <= 128) fprintf(fp, "%c", buf[j]);
-                else fprintf(fp, ".(%d)", buf[j]);
+                else fprintf(fp, ".");
             }
 
             fprintf(fp, "\n");
