@@ -1,13 +1,10 @@
-Server=server
-Client=client
+all: server client
 
-make: clean server client
+server: server.c
+	gcc -o server server.c
 
-server: $(Server).c
-	gcc -o $(Server) $(Server).c
-
-client: $(Client).c
-	gcc -o $(Client) $(Client).c
+client: client.c
+	gcc -o client client.c
 
 clean:
-	rm -rf $(Server) $(Client)
+	rm -f server client
